@@ -12,6 +12,7 @@ morgan.token('body', (req, res) => {
 })
 
 app.use(
+  express.static('build'),
   bodyParser.json(),
   morgan(':method :url :status :res[content-length] - :response-time ms :body'),
 )
@@ -24,29 +25,15 @@ let people = [
   },
   {
     id: 1,
-    name: 'lauri',
-    number: '0123456789',
+    name: 'heikki',
+    number: '011',
   },
   {
     id: 2,
-    name: 'lauri',
-    number: '0123456789',
-  },
-  {
-    id: 3,
-    name: 'lauri',
-    number: '0123456789',
-  },
-  {
-    id: 4,
-    name: 'lauri',
-    number: '0123456789',
+    name: 'matti',
+    number: '022',
   },
 ]
-
-app.get('/', (req, res) => {
-  res.send('<h1>Hello World</h1>')
-})
 
 app.get('/info', (req, res) => {
   total_people = people.reduce((acc, cur) => acc += 1, 0);
@@ -107,7 +94,7 @@ app.delete('/api/persons/:id', (req, res) => {
   res.status(204).end()
 })
 
-const PORT = 3001
+const PORT = process.env.PORT || 3001
 app.listen(PORT, () => {
-  console.log('running')
+  console.log(`Server running on port ${PORT}`)
 })
