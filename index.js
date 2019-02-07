@@ -1,4 +1,7 @@
-require('dotenv').config()
+if (process.env.NODE_ENV !== 'production') {
+  require('dotenv').config()
+}
+
 const express = require('express')
 const morgan = require('morgan')
 const app = express()
@@ -21,21 +24,6 @@ app.use(
 )
 
 let people = [
-  {
-    id: 0,
-    name: 'lauri',
-    number: '0123456789',
-  },
-  {
-    id: 1,
-    name: 'heikki',
-    number: '011',
-  },
-  {
-    id: 2,
-    name: 'matti',
-    number: '022',
-  },
 ]
 
 app.get('/info', (req, res) => {
@@ -46,6 +34,7 @@ app.get('/info', (req, res) => {
 
 app.get('/api/persons', (req, res) => {
   Contact.find({}).then(people => {
+    people = people
     res.json(people.map(person => person.toJSON()))
   })
 })
@@ -69,18 +58,6 @@ const generateId = () => {
 
 app.post('/api/persons', (req, res, next) => {
   const body = req.body
-
-  if (body.name === undefined || body.number === undefined) {
-    return res.status(400).json({
-      error: 'you need to send both name and a number'
-    })
-  }
-
-  if (people.find(person => person.name === body.name)) {
-    return res.status(400).json({
-      error: 'name must be unique'
-    })
-  }
   
   const person = new Contact({
     name: body.name,
@@ -129,6 +106,8 @@ const errorHandler = (error, req, res, next) => {
 
   if (error.name === 'CastError' && error.kind === 'ObjectId') {
     return res.status(400).send({ error: 'malformatted id' })
+  } else if (error.name === 'ValidationError') {
+    return res.status(400).json({ error: error.message })
   }
 
   next(error)
