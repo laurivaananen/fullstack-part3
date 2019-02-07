@@ -25,14 +25,13 @@ let people = [
 ]
 
 app.get('/info', (req, res) => {
-  total_people = people.reduce((acc, cur) => acc += 1, 0);
+  total_people = people.reduce((acc, cur) => acc += 1, 0)
   date_now = new Date()
   res.send(`<p>Puhelinluettelossa on ${total_people} henkilön tiedot<br/>${date_now}`)
 })
 
 app.get('/api/persons', (req, res) => {
   Contact.find({}).then(people => {
-    people = people
     res.json(people.map(person => person.toJSON()))
   })
 })
@@ -49,19 +48,14 @@ app.get('/api/persons/:id', (req, res, next) => {
     .catch(error => next(error))
 })
 
-const generateId = () => {
-  const newId = Math.floor(Math.random() * Math.floor(1000000))
-  return newId
-}
-
 app.post('/api/persons', (req, res, next) => {
   const body = req.body
-  
+
   const person = new Contact({
     name: body.name,
     number: body.number
   })
-  
+
   person.save()
     .then(savedPerson => {
       res.json(savedPerson.toJSON())
@@ -85,7 +79,7 @@ app.put('/api/persons/:id', (req, res, next) => {
 })
 
 app.delete('/api/persons/:id', (req, res, next) => {
-  
+
   Contact.findByIdAndRemove(req.params.id)
     .then(result => {
       res.status(204).end()
