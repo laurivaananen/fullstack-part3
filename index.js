@@ -1,7 +1,10 @@
+require('dotenv').config()
 const express = require('express')
 const morgan = require('morgan')
 const app = express()
 const bodyParser = require('body-parser')
+
+const Contact = require('./models/contact')
 
 morgan.token('body', (req, res) => {
   if (req.method === 'POST') {
@@ -42,18 +45,21 @@ app.get('/info', (req, res) => {
 })
 
 app.get('/api/persons', (req, res) => {
-  res.json(people)
+  Contact.find({}).then(people => {
+    res.json(people.map(person => person.toJSON()))
+  })
 })
 
-app.get('/api/persons/:id', (req, res) => {
-  const id = Number(req.params.id)
-  const person = people.find(person => person.id === id)
-  
-  if (person) {
-    res.json(person)
-  } else {
-    res.status(404).end()
-  }
+app.get('/api/persons/:id', (req, res, next) => {
+  Contact.findById(req.params.id)
+    .then(contact => {
+      if (contact) {
+        res.json(contact.toJSON())
+      } else {
+        res.status(204).end()
+      }
+    })
+    .catch(error => next(error))
 })
 
 const generateId = () => {
@@ -61,7 +67,7 @@ const generateId = () => {
   return newId
 }
 
-app.post('/api/persons', (req, res) => {
+app.post('/api/persons', (req, res, next) => {
   const body = req.body
 
   if (body.name === undefined || body.number === undefined) {
@@ -76,25 +82,61 @@ app.post('/api/persons', (req, res) => {
     })
   }
   
-  const person = {
-    id: generateId(),
+  const person = new Contact({
     name: body.name,
-    number: body.number,
+    number: body.number
+  })
+  
+  person.save()
+    .then(savedPerson => {
+      res.json(savedPerson.toJSON())
+    })
+    .catch(error => next(error))
+})
+
+app.put('/api/persons/:id', (req, res, next) => {
+  const body = req.body
+
+  const contact = {
+    name: body.name,
+    number: body.number
   }
 
-  people = people.concat(person)
-
-  res.json(person)
+  Contact.findByIdAndUpdate(req.params.id, contact, { new: true })
+    .then(updatedPerson => {
+      res.json(updatedPerson.toJSON())
+    })
+    .catch(error => next(error))
 })
 
-app.delete('/api/persons/:id', (req, res) => {
-  const id = Number(req.params.id);
-  people = people.filter(person => person.id !== id);
-
-  res.status(204).end()
+app.delete('/api/persons/:id', (req, res, next) => {
+  
+  Contact.findByIdAndRemove(req.params.id)
+    .then(result => {
+      res.status(204).end()
+    })
+    .catch(error => next(error))
 })
 
-const PORT = process.env.PORT || 3001
+const unknownEndpoint = (req, res) => {
+  res.status(404).send({ error: 'unknown endpoint' })
+}
+
+app.use(unknownEndpoint)
+
+const errorHandler = (error, req, res, next) => {
+  console.log(error.message)
+
+  if (error.name === 'CastError' && error.kind === 'ObjectId') {
+    return res.status(400).send({ error: 'malformatted id' })
+  }
+
+  next(error)
+}
+
+app.use(errorHandler)
+
+const PORT = process.env.PORT
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`)
 })
